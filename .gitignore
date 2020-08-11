@@ -1,7 +1,6 @@
 # This is a .gitignore file
 
 # Project files and data
-out/
 *.bed
 *.png
 
