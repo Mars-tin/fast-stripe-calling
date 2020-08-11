@@ -69,7 +69,7 @@ def _stripe_caller(mat, orientation='h',
     print('A total of {} positions are located after merging'.format(len(new_positions)))
 
     # Step 4: Statistical test on symmetric stripe region
-    df_tad = pd.read_csv("data/{}_{}kb.csv".format(cell_type, 25))
+    df_tad = pd.read_csv("data/tad/{}_{}kb.csv".format(cell_type, 25))
     df_tad = df_tad.loc[df_tad['type'] == "domain"]
     df_tad = df_tad.loc[df_tad['chrom'] == chrome]
     list_tad = np.asarray([df_tad['start']//resolution, df_tad['end']//resolution]).T
