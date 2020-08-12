@@ -124,7 +124,7 @@ def venn(cell1, cell2, resolution=10, save=False):
     plt.title('Stripe Comparison at {}kb'.format(resolution))
     plt.tight_layout()
     if save:
-        plt.savefig('out/{}_{}.pdf'.format(cell1, cell2), format='pdf')
+        plt.savefig('plot/{}_{}.pdf'.format(cell1, cell2), format='pdf')
     else:
         plt.show()
 
