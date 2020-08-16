@@ -25,7 +25,10 @@ def pile_up(full_mat, cell_type, chrom, orient, size=(51, 100), resol=10000, pen
     df = pd.read_csv(f, sep='\t')
     df = df.loc[df['chr'] == chrom]
     df = df.loc[df['orientation'] == orient]
-    anchors = np.asarray([df['start'], df['end']]).T
+    if len(df) > 1:
+        anchors = np.asarray([df['start'], df['end']]).T
+    else:
+        anchors = np.asarray([df['start'].values, df['end'].values]).T
     anchors = np.mean(anchors//resol, axis=1, dtype=np.int)
     anchors = list(anchors)
 
@@ -46,8 +49,7 @@ def pile_up(full_mat, cell_type, chrom, orient, size=(51, 100), resol=10000, pen
         else:
             mat += stripe
 
-    mat = mat / count
-    return mat
+    return mat, count
 
 
 def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
@@ -62,6 +64,8 @@ def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
 
     piled_h = np.zeros(size)
     piled_v = np.zeros(size)
+    count_h = 0
+    count_v = 0
 
     for chrom in chroms:
         print(f'Dumping .hic file - {chrom}')
@@ -79,8 +83,15 @@ def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
         mat_v = np.maximum(mat_v, threshold) - threshold
 
         print(f'Piling stripes - {chrom}')
-        piled_h += pile_up(mat_h, cell_type, chrom, 'horizontal', size, resolution, penalized)
-        piled_v += pile_up(mat_v, cell_type, chrom, 'vertical', size, resolution, penalized)
+        new_h, cnt_h = pile_up(mat_h, cell_type, chrom, 'horizontal', size, resolution, penalized)
+        new_v, cnt_v = pile_up(mat_v, cell_type, chrom, 'vertical', size, resolution, penalized)
+        piled_h += new_h
+        piled_v += new_v
+        count_h += cnt_h
+        count_v += cnt_v
+
+    piled_h /= count_h
+    piled_v /= count_v
 
     print(f'Reshaping the matrix as a {shape}')
     if penalized:
@@ -95,15 +106,15 @@ def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
         for orient, mat in mats.items():
             plt.figure(figsize=(10, 6))
             sns.heatmap(mat, square=False, cmap='Reds', vmax=vmax, vmin=0, xticklabels=[], yticklabels=[])
-            plt.savefig('plot/averaged_{}_{}.png'.format(cell_type, orient))
-            plt.show()
+            plt.savefig('plot/averaged_{}_{}.pdf'.format(cell_type, orient))
+            # plt.show()
     else:
         orig = reshape_square(piled_h, piled_v, size)
         plt.figure(figsize=(12, 10))
         sns.heatmap(orig, square=False, cmap='Reds', vmax=vmax, vmin=0, xticklabels=[], yticklabels=[])
-        plt.savefig('plot/averaged_{}.png'.format(cell_type))
-        plt.show()
-    print("Done")
+        plt.savefig('plot/averaged_{}.pdf'.format(cell_type))
+        # plt.show()
+    print(f'Done')
 
 
 if __name__ == "__main__":
@@ -152,3 +163,4 @@ if __name__ == "__main__":
                 resolution=args.resolution, threshold=args.threshold,
                 shape=args.shape, penalized=args.penalized
                 )
+
