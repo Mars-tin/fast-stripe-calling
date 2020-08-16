@@ -37,7 +37,7 @@ def pile_up(full_mat, cell_type, chrom, orient, size=(51, 100), resol=10000, pen
         stripe = full_mat[pos - size[0]//2: pos + size[0]//2+1, :]
         if penalized:
             for i in range(size[1]):
-                stripe[:, i] *= (1-8/(i+10))
+                stripe[:, i] *= (1-8/(i+10)) # Penalization term
         if pos-size[0]//2 < 0:
             padded = np.zeros(size)
             padded[size[0]-stripe.shape[0]:, :] = stripe
