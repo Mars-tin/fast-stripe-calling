@@ -41,9 +41,6 @@ def comp(cell1, cell2, reference_genome='hg38', tolerance=10000):
             else:
                 anc_cell2 = list(np.asarray([df_cell2_dir['start'].values, df_cell2_dir['end'].values]).T)
 
-            if len(anc_cell2) == 0 or len(anc_cell1) == 0:
-                continue
-
             for anchor_cell2 in anc_cell2:
                 anchor_cell2[0] -= tolerance / 2
                 anchor_cell2[1] += tolerance / 2
@@ -76,10 +73,10 @@ def comp(cell1, cell2, reference_genome='hg38', tolerance=10000):
                 unique_cell2.append(anchor_cell2)
             for anchor_cell1 in anc_cell1:
                 unique_cell1.append(anchor_cell1)
-    print("= = = = = =")
+
     print("shared: {}".format(len(shared)))
     print("{}: {}".format(cell1, len(unique_cell1)))
-    print("{}: {}".format(cell2, len(unique_cell2)))
+    print("{}: {}\n".format(cell2, len(unique_cell2)))
     return len(unique_cell1), len(unique_cell2), len(shared)
 
 
