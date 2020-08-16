@@ -22,6 +22,6 @@ python PyStripe.py -i data/4943.hic -o stripes/4943
 ### Stripe Comparison
 
 ```python
-python visualize.py
+python compare.py
 ```
 

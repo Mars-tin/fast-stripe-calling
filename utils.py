@@ -118,11 +118,8 @@ def load_KR_sum(file):
     return np.mean(all_sums)
 
 
-def show_heat_plot(matrix, ran=None, vmin=0, vmax=10):
-    # matrix = np.transpose(matrix)[0:100]
-    # matrix = np.transpose(matrix)[0:1000]
-    # matrix = matrix[11000:11300]
-    matrix = matrix[22650:22950]
+def show_heat_plot(matrix, ran=(22650, 22950), vmin=0, vmax=10):
+    matrix = matrix[ran[0]:ran[1]]
     sns.set()
     sns.heatmap(matrix, vmin=vmin, vmax=vmax, cmap="Reds")
     plt.savefig("line_matrix.pdf")
