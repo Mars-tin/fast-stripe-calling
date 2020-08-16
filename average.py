@@ -1,5 +1,6 @@
 import pandas as pd
 import argparse
+import matplotlib.patches as patches
 
 from utils import *
 
@@ -19,7 +20,7 @@ def reshape_square(mat_h, mat_v, size=(51, 100)):
     return orig
 
 
-def pile_up(full_mat, cell_type, chrom, orient, size=(51, 100), resol=10000, penalized=False):
+def pile_up(full_mat, cell_type, chrom, orient, size=(51, 100), resol=10000):
     mat, count = np.zeros(size), 0
     f = 'stripes/{}.signal'.format(cell_type)
     df = pd.read_csv(f, sep='\t')
@@ -35,9 +36,6 @@ def pile_up(full_mat, cell_type, chrom, orient, size=(51, 100), resol=10000, pen
     for pos in anchors:
         count += 1
         stripe = full_mat[pos - size[0]//2: pos + size[0]//2+1, :]
-        if penalized:
-            for i in range(size[1]):
-                stripe[:, i] *= (1-8/(i+10)) # Penalization term
         if pos-size[0]//2 < 0:
             padded = np.zeros(size)
             padded[size[0]-stripe.shape[0]:, :] = stripe
@@ -52,10 +50,11 @@ def pile_up(full_mat, cell_type, chrom, orient, size=(51, 100), resol=10000, pen
     return mat, count
 
 
-def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
+def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100), width=3,
             resolution=10000, threshold=3, shape='square', penalized=False):
 
-    # Load in the reference chrome sizes
+    print('Cell type:', cell_type)
+
     chrom_lengths = load_chrom_sizes(reference_genome)
     if isinstance(chroms, str) and chroms.lower() == 'all':
         chroms = chrom_lengths.keys()
@@ -68,12 +67,13 @@ def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
     count_v = 0
 
     for chrom in chroms:
-        print(f'Dumping .hic file - {chrom}')
+        print(chrom)
+        print(f'Dumping .hic file...')
         hic_file = 'data/{}.hic'.format(cell_type)
         txt_file = hic2txt(hic_file, chrom, resolution=resolution, output=None)
         KR_sum = load_KR_sum(txt_file)
 
-        print(f'Loading contact maps - {chrom}')
+        print(f'Loading contact maps...')
         mat_h = txt2line(txt_file, 'horizontal', chrom_lengths[chrom], size[1]*resolution, resolution)
         mat_v = txt2line(txt_file, 'vertical', chrom_lengths[chrom], size[1]*resolution, resolution)
 
@@ -82,9 +82,9 @@ def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
         mat_h = np.maximum(mat_h, threshold) - threshold
         mat_v = np.maximum(mat_v, threshold) - threshold
 
-        print(f'Piling stripes - {chrom}')
-        new_h, cnt_h = pile_up(mat_h, cell_type, chrom, 'horizontal', size, resolution, penalized)
-        new_v, cnt_v = pile_up(mat_v, cell_type, chrom, 'vertical', size, resolution, penalized)
+        print(f'Piling stripes...')
+        new_h, cnt_h = pile_up(mat_h, cell_type, chrom, 'horizontal', size, resolution)
+        new_v, cnt_v = pile_up(mat_v, cell_type, chrom, 'vertical', size, resolution)
         piled_h += new_h
         piled_v += new_v
         count_h += cnt_h
@@ -93,11 +93,24 @@ def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
     piled_h /= count_h
     piled_v /= count_v
 
-    print(f'Reshaping the matrix as a {shape}')
+    print(f'Reshaping the matrix as a {shape}...')
+
+    enrich_h = np.mean(piled_h[size[0]//2-width//2:size[0]//2+width//2+1, :])
+    enrich_v = np.mean(piled_v[size[0]//2-width//2:size[0]//2+width//2+1, :])
+    enrich = (enrich_h + enrich_v) / 2
+    print('Horizontal average enrichment:', enrich_h)
+    print('Vertical average enrichment:', enrich_v)
+    print('Total average enrichment:', enrich)
+
     if penalized:
         vmax = 3
+        for i in range(size[1]):
+            penalty = (1 - 8 / (i + 10))  # Penalization term
+            piled_h[:, i] *= penalty
+            piled_v[:, i] *= penalty
     else:
-        vmax = 6
+        vmax = 5
+
     if shape == 'triangle':
         orig_h = reshape_triangle(piled_h, size)
         orig_v = reshape_triangle(piled_v, size)
@@ -105,15 +118,32 @@ def average(cell_type, reference_genome='hg38', chroms='all', size=(51, 100),
 
         for orient, mat in mats.items():
             plt.figure(figsize=(10, 6))
-            sns.heatmap(mat, square=False, cmap='Reds', vmax=vmax, vmin=0, xticklabels=[], yticklabels=[])
+            font = {'size': 24}
+            plt.rc('font', **font)
+            sns.heatmap(mat, square=False, cmap='Reds', vmax=vmax, vmin=0,
+                        xticklabels=[], yticklabels=[])
             plt.savefig('plot/averaged_{}_{}.pdf'.format(cell_type, orient))
-            # plt.show()
+            plt.show()
     else:
         orig = reshape_square(piled_h, piled_v, size)
-        plt.figure(figsize=(12, 10))
-        sns.heatmap(orig, square=False, cmap='Reds', vmax=vmax, vmin=0, xticklabels=[], yticklabels=[])
+        fig = plt.figure(figsize=(12, 10))
+        ax = fig.add_subplot()
+        font = {'size': 36}
+        plt.rc('font', **font)
+        sns.heatmap(orig, square=False, cmap='Reds',
+                    vmax=vmax, vmin=0,
+                    xticklabels=[], yticklabels=[])
+
+        handles = [patches.Rectangle((0, 0), 1, 1, fc="white", ec="white", lw=0, alpha=0)] * 3
+        labels = ["Forward : {0:.3f}".format(enrich_h),
+                  "Reverse: {0:.3f}".format(enrich_v),
+                  "Total: {0:.3f}".format(enrich)]
+        ax.legend(handles, labels, loc='lower right',
+                  fancybox=True, framealpha=0.7,
+                  handlelength=0, handletextpad=0)
+
         plt.savefig('plot/averaged_{}.pdf'.format(cell_type))
-        # plt.show()
+        plt.show()
     print(f'Done')
 
 
@@ -122,14 +152,20 @@ if __name__ == "__main__":
     parser.add_argument(
         '-w', '--window_size',
         type=int,
-        default=51,
+        default=41,
         help='size of the window for stripe surroundings'
     )
     parser.add_argument(
         '-m', '--max_range',
         type=int,
-        default=100,
+        default=80,
         help='max distance off the diagonal'
+    )
+    parser.add_argument(
+        '-d', '--width',
+        type=int,
+        default=3,
+        help='widths of stripe anchor by resolution'
     )
     parser.add_argument(
         '-r', '--resolution',
@@ -150,7 +186,7 @@ if __name__ == "__main__":
         help='square or triangle'
     )
     parser.add_argument(
-        '--penalized',
+        '-p', '--penalized',
         dest='penalized',
         action='store_true'
     )
@@ -161,6 +197,4 @@ if __name__ == "__main__":
     for cell in cells:
         average(cell, size=(args.window_size, args.max_range),
                 resolution=args.resolution, threshold=args.threshold,
-                shape=args.shape, penalized=args.penalized
-                )
-
+                shape=args.shape, penalized=args.penalized)
