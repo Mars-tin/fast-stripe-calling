@@ -110,7 +110,7 @@ def comp(cell1, cell2, tolerance=10000):
                 unique_cell2.append(anchor_cell2)
             for anchor_cell1 in anc_cell1:
                 unique_cell1.append(anchor_cell1)
-
+    print("= = = = = =")
     print("shared: {}".format(len(shared)))
     print("{}: {}".format(cell1, len(unique_cell1)))
     print("{}: {}".format(cell2, len(unique_cell2)))
@@ -130,8 +130,7 @@ def venn(cell1, cell2, resolution=10, save=False):
 
 
 if __name__ == "__main__":
-    # cells = ['HSPC_downsample', '4943', '5832_CD34pos', '6281_DMSO', '6527', '5577', 'O3', 'MV411', 'Kasumi']
-    cells = ['HSPC_downsample', '4943', '5832_CD34pos', '6527', '5577', 'O3', 'MV411', 'Kasumi']
+    cells = ['HSPC_downsample', '4943', '5832_CD34pos', '6281_DMSO', '6527', '5577', 'O3', 'MV411', 'Kasumi']
     for i in range(len(cells)):
         for j in range(i+1, len(cells)):
             venn(cells[i], cells[j], save=True)
