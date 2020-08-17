@@ -25,3 +25,8 @@ python PyStripe.py -i data/4943.hic -o stripes/4943
 python compare.py
 ```
 
+### Average Stripe Analysis
+
+```python
+python analyze.py [-p]
+```
