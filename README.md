@@ -28,5 +28,5 @@ python compare.py
 ### Average Stripe Analysis
 
 ```python
-python analyze.py [-p]
+python average.py [-p]
 ```
