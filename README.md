@@ -32,8 +32,4 @@ python compare.py
 
 ```python
 python average.py [-p]
-<<<<<<< HEAD
 ```
-=======
-```
->>>>>>> a3c12c23cbb0b724e5cc9ce6ac10c01f563bc4e8

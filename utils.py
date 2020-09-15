@@ -309,8 +309,11 @@ def stat_test(mat, orientation, st, ed, head, tail, line_width, window_size, lis
     local = mat[x1:x2, head:tail].flatten()
     upper = mat[x1 - window_size:x1, head:tail].flatten()
     lower = mat[x2:x2 + window_size, head:tail].flatten()
-    t1, p1 = kruskal(local, upper)
-    t2, p2 = kruskal(local, lower)
+    try:
+        t1, p1 = kruskal(local, upper)
+        t2, p2 = kruskal(local, lower)
+    except ValueError:
+        return 1
 
     if list_tad is not None:
         tad_region = None

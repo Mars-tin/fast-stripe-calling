@@ -1,4 +1,5 @@
 import pandas as pd
+from scipy.signal import find_peaks_cwt
 
 from utils import *
 
@@ -9,18 +10,7 @@ def _stripe_caller(mat, orientation='h',
                    min_length=500000, closeness=1000000,
                    stripe_width=1, merge=1, window_size=5,
                    chrome='chr1', cell_type='hspc'):
-    """
-    :param mat: (2D ndarray) line matrix
-    :param resolution: (int) resolution
-    :param max_range: (int) only consider this range off the diagonal
-    :param interval: (int) minimum interval between two stripe anchors
-    :param min_length: (int) minimum length of stripes
-    :param filter_rate: (float) percentage of filtered anchors
-    :param closeness: (int) maximum distance off the diagonal
-    :param stripe_width: (int) stripe width (# of bins)
-    :param merge: (int) merge stripes within this range (# of bins)
-    :param window_size: (int) size of the window for calculating enrichment
-    """
+
     # Step 1: for different distance ranges pick the "local maximum" positions
     print(' Step 1: Finding local maximum for different contact distances...')
     positions = {}
@@ -80,5 +70,60 @@ def _stripe_caller(mat, orientation='h',
         [st, ed, head, tail, score] = elm
         p = stat_test(mat, orientation, st, ed, head, tail, stripe_width, window_size, list_tad)
         if p < 0.2:
+            results.append([st, ed, head, tail, score, 1-p/2])
+    return results
+
+
+def _deletion_caller(mat, orientation='h',
+                     max_range=3000000, resolution=25000,
+                     interval=200000, filter_rate=0.95,
+                     min_length=500000, closeness=1000000,
+                     stripe_width=1, merge=1, window_size=5,
+                     chrome='chr1', cell_type='hspc'):
+
+    # Step 1: for different distance ranges pick the "local maximum" positions
+    print(' Step 1: Finding local minimum for different contact distances...')
+    anchor_strength = np.sum(mat, axis=1)
+    anchor_strength = np.max(anchor_strength) - anchor_strength
+    peaks = find_peaks_cwt(anchor_strength, np.arange(1, window_size))
+    print(' A total of {} positions are located'.format(len(peaks)))
+
+    # Step 2: find the accurate range of stripe
+    print(' Step 2: Finding the spanning range for each stripe...')
+    all_positions = []
+    for i, idx in enumerate(peaks):
+        if idx <= window_size or idx >= mat.shape[0] - window_size:
+            continue
+        arr = line_neighbor_score(mat, idx, line_width=stripe_width,
+                                  distance_range=(0, max_range // resolution),
+                                  window_size=window_size,
+                                  neighbor_trick='mean', line_trick='med',
+                                  metric='ratio')
+        head, tail, max_val = find_max_slice(-1 * arr)
+        if max_val > 0:
+            all_positions.append((idx, head, tail, max_val))
+    print(" Succeed sliced {} locations".format(len(all_positions)))
+
+    # Step 3: Merging and filtering
+    print(' Step 3: Merging neighboring stripes...')
+    all_positions = merge_positions(all_positions, merge_range=merge)
+
+    new_positions = []
+    for elm in all_positions:
+        [_, _, head, tail, _] = elm
+        if (tail - head) * resolution >= min_length \
+                and head * resolution <= closeness:
+            new_positions.append(elm)
+        else:
+            pass
+    print('A total of {} positions are located after merging'.format(len(new_positions)))
+
+    # Step 4: Statistical test
+    results = []
+    print(' Step 4: Statistical Tests...')
+    for elm in new_positions:
+        [st, ed, head, tail, score] = elm
+        p = stat_test(mat, orientation, st, ed, head, tail, stripe_width, window_size)
+        if p < 0.001:
             results.append([st, ed, head, tail, score, 1-p/2])
     return results

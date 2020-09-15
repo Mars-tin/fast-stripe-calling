@@ -3,15 +3,16 @@ import os
 import numpy as np
 
 from utils import load_chrom_sizes, hic2txt, load_KR_sum, txt2line
-from stripe_caller import _stripe_caller
+from callers import _stripe_caller, _deletion_caller
 
 
-def stripe_caller(hic_file, output_file, reference_genome='hg38', chroms='all',
-                  resolution=25000, max_range=3000000,
-                  interval=500000, min_length=500000, closeness=1000000,
-                  stripe_width=1, merge=1, window_size=5,
-                  static_filtered=False, threshold=3):
+def caller1(caller_func, hic_file, output_file, reference_genome='hg38', chroms='all',
+            resolution=25000, max_range=3000000,
+            interval=500000, min_length=500000, closeness=1000000,
+            stripe_width=1, merge=1, window_size=5,
+            static_filtered=False, threshold=3):
     """
+    :param caller_func: (func) caller function
     :param hic_file: (str) .hic file path
     :param output_file: (str) output filename bedpe path
     :param reference_genome: (str) reference genome
@@ -65,10 +66,10 @@ def stripe_caller(hic_file, output_file, reference_genome='hg38', chroms='all',
         fil = 10 if static_filtered else 0
 
         print(f'Calculating stripes - {chrom} - horizontal')
-        stripes_h = _stripe_caller(mat_h, orientation='h', max_range=max_range, resolution=resolution,
-                                   interval=interval, min_length=min_length, closeness=closeness,
-                                   stripe_width=stripe_width, merge=merge, window_size=window_size,
-                                   chrome=chrom, cell_type=cell_type)
+        stripes_h = caller_func(mat_h, orientation='h', max_range=max_range, resolution=resolution,
+                                interval=interval, min_length=min_length, closeness=closeness,
+                                stripe_width=stripe_width, merge=merge, window_size=window_size,
+                                chrome=chrom, cell_type=cell_type)
 
         if len(stripes_h) > 0:
             if not static_filtered:
@@ -82,10 +83,10 @@ def stripe_caller(hic_file, output_file, reference_genome='hg38', chroms='all',
                     f_bedpe.write(f'{chrom}\t{x1}\t{x2}\t{chrom}\t{y1}\t{y2}\t0,255,0\t{enr}\n')  # green
 
         print(f'Calculating stripes - {chrom} - vertical')
-        stripes_v = _stripe_caller(mat_v, orientation='v', max_range=max_range, resolution=resolution,
-                                   interval=interval, min_length=min_length, closeness=closeness,
-                                   stripe_width=stripe_width, merge=merge, window_size=window_size,
-                                   chrome=chrom, cell_type=cell_type)
+        stripes_v = caller_func(mat_v, orientation='v', max_range=max_range, resolution=resolution,
+                                interval=interval, min_length=min_length, closeness=closeness,
+                                stripe_width=stripe_width, merge=merge, window_size=window_size,
+                                chrome=chrom, cell_type=cell_type)
 
         if len(stripes_v) > 0:
             if not static_filtered:
@@ -107,7 +108,8 @@ def stripe_caller(hic_file, output_file, reference_genome='hg38', chroms='all',
 def PyStripe(args):
     chromosomes = ['chr' + elm for elm in args.chromosomes.split(',')] if args.chromosomes.lower() != 'all' else 'all'
     if args.feature == 'stripe':
-        stripe_caller(
+        caller1(
+            _stripe_caller,
             args.input,
             args.output,
             reference_genome=args.rg,
@@ -123,7 +125,22 @@ def PyStripe(args):
             static_filtered=args.filter == 'False'
         )
     elif args.feature == 'deletion':
-        pass
+        caller1(
+            _deletion_caller,
+            args.input,
+            args.output,
+            reference_genome=args.rg,
+            chroms=chromosomes,
+            resolution=args.resolution,
+            max_range=args.max_distance,
+            interval=300000,
+            min_length=args.min_length,
+            closeness=args.min_distance,
+            stripe_width=args.width,
+            merge=args.merge,
+            window_size=args.window_size,
+            static_filtered=args.filter == 'False'
+        )
     elif args.feature == 'het-deletion':
         pass
     elif args.feature == 'inversion':
