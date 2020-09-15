@@ -1,5 +1,7 @@
-# NaiveStripe
-Python script for calling stripes from HiC contact maps. This is a naive version.
+# Fast HiC Feature Extraction
+
+Python script for calling features from HiC contact maps. This is a naive version.
+
 - Input: `.hic` file
 - Output: a `.bedpe` 2D annotation and `.signal` file
 
@@ -7,17 +9,18 @@ Python script for calling stripes from HiC contact maps. This is a naive version
 - `python3`
   - Packages:` numpy`, `scipy`, `matplotlib`, `seaborn`
 
-## Usage
+## Stripes
 
 ### Stripe Calling
 
 ```python
-python PyStripe.py -i data/4943.hic -o stripes/4943
+python FeatExtract.py -i data/4943.hic -o stripes/4943 -f stripe
 ```
 
 
 - `-i`, `--input`: `.hic` file path
 - `-o`, `--output`: output file name
+- `-f`, `--feature`: the feature to extract
 
 ### Stripe Comparison
 
@@ -29,4 +32,8 @@ python compare.py
 
 ```python
 python average.py [-p]
+<<<<<<< HEAD
 ```
+=======
+```
+>>>>>>> a3c12c23cbb0b724e5cc9ce6ac10c01f563bc4e8

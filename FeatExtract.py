@@ -2,8 +2,8 @@ import argparse
 import os
 import numpy as np
 
-from utils import load_chrom_sizes, hic2txt, load_KR_sum, txt2line, show_heat_plot
-from symmetric_caller import _stripe_caller
+from utils import load_chrom_sizes, hic2txt, load_KR_sum, txt2line
+from stripe_caller import _stripe_caller
 
 
 def stripe_caller(hic_file, output_file, reference_genome='hg38', chroms='all',
@@ -106,21 +106,30 @@ def stripe_caller(hic_file, output_file, reference_genome='hg38', chroms='all',
 
 def PyStripe(args):
     chromosomes = ['chr' + elm for elm in args.chromosomes.split(',')] if args.chromosomes.lower() != 'all' else 'all'
-    stripe_caller(
-        args.input,
-        args.output,
-        reference_genome=args.rg,
-        chroms=chromosomes,
-        resolution=args.resolution,
-        max_range=args.max_distance,
-        interval=300000,
-        min_length=args.min_length,
-        closeness=args.min_distance,
-        stripe_width=args.width,
-        merge=args.merge,
-        window_size=args.window_size,
-        static_filtered=args.filter == 'False'
-    )
+    if args.feature == 'stripe':
+        stripe_caller(
+            args.input,
+            args.output,
+            reference_genome=args.rg,
+            chroms=chromosomes,
+            resolution=args.resolution,
+            max_range=args.max_distance,
+            interval=300000,
+            min_length=args.min_length,
+            closeness=args.min_distance,
+            stripe_width=args.width,
+            merge=args.merge,
+            window_size=args.window_size,
+            static_filtered=args.filter == 'False'
+        )
+    elif args.feature == 'deletion':
+        pass
+    elif args.feature == 'het-deletion':
+        pass
+    elif args.feature == 'inversion':
+        pass
+    else:
+        pass
 
 
 if __name__ == "__main__":
@@ -136,6 +145,11 @@ if __name__ == "__main__":
         type=str,
         default='chr1_10kb_stripes_v2.txt',
         help='output bedpe path'
+    )
+    parser.add_argument(
+        '-f', '--feature',
+        type=str,
+        default='stripe',
     )
     parser.add_argument(
         '-r', '--resolution',
